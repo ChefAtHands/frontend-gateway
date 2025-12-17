@@ -1,5 +1,6 @@
 package com.chefathands.gateway.client;
 
+import com.chefathands.gateway.dto.IngredientDTO;
 import com.chefathands.gateway.dto.UserIngredientDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -25,7 +26,49 @@ public class IngredientServiceClient {
         this.restTemplate = restTemplate;
     }
     
+    // ========== Ingredient CRUD ==========
+    
+    public List<IngredientDTO> getAllIngredients() {
+        String url = ingredientServiceUrl + "/api/ingredients";
+        ResponseEntity<List<IngredientDTO>> response = restTemplate.exchange(
+            url,
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<List<IngredientDTO>>() {}
+        );
+        return response.getBody();
+    }
+    
+    public IngredientDTO getIngredientById(Integer id) {
+        String url = ingredientServiceUrl + "/api/ingredients/" + id;
+        return restTemplate.getForObject(url, IngredientDTO.class);
+    }
+    
+    public List<IngredientDTO> searchIngredientsByName(String name) {
+        String url = ingredientServiceUrl + "/api/ingredients/search?name=" + name;
+        ResponseEntity<List<IngredientDTO>> response = restTemplate.exchange(
+            url,
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<List<IngredientDTO>>() {}
+        );
+        return response.getBody();
+    }
+    
+    public IngredientDTO createIngredient(IngredientDTO ingredient) {
+        String url = ingredientServiceUrl + "/api/ingredients";
+        return restTemplate.postForObject(url, ingredient, IngredientDTO.class);
+    }
+    
+    public void deleteIngredient(Integer id) {
+        String url = ingredientServiceUrl + "/api/ingredients/" + id;
+        restTemplate.delete(url);
+    }
+    
+    // ========== User Ingredients (Pantry) ==========
+    
     public List<UserIngredientDTO> getUserIngredients(Integer userId) {
+        
         String url = ingredientServiceUrl + "/api/users/" + userId + "/ingredients";
         ResponseEntity<List<UserIngredientDTO>> response = restTemplate.exchange(
             url,
@@ -36,44 +79,32 @@ public class IngredientServiceClient {
         return response.getBody();
     }
     
-    public UserIngredientDTO addIngredient(Integer userId, UserIngredientDTO ingredient) {
+    public UserIngredientDTO addIngredient(Integer userId, UserIngredientDTO userIngredient) {
+       
         String url = ingredientServiceUrl + "/api/users/" + userId + "/ingredients";
-        return restTemplate.postForObject(url, ingredient, UserIngredientDTO.class);
+        return restTemplate.postForObject(url, userIngredient, UserIngredientDTO.class);
     }
-
-    public UserIngredientDTO updateIngredient(Integer userId, Integer userIngredientId, UserIngredientDTO ingredient) {
-        try {
-            String url = ingredientServiceUrl + "/api/users/" + userId + "/ingredients/" + userIngredientId;
-            
-            System.out.println("Request Quantity: " + ingredient.getQuantity());
-            
-            // Create request body with ONLY "quantity" field
-            Map<String, String> requestBody = new HashMap<>();
-            requestBody.put("quantity", ingredient.getQuantity());
-            
-            System.out.println("Request Body: " + requestBody);
-            
-            // Create HTTP entity with the Map
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody);
-            
-            // Send PATCH request
-            ResponseEntity<UserIngredientDTO> response = restTemplate.exchange(
-                url, 
-                HttpMethod.PATCH, 
-                request, 
-                UserIngredientDTO.class
-            );
-            
-            return response.getBody();
-        } catch (Exception e) {
-            System.err.println("Exception Type: " + e.getClass().getName());
-            System.err.println("Exception Message: " + e.getMessage());
-            e.printStackTrace();
-            throw e; // Re-throw to see it in GlobalExceptionHandler
-        }
+    
+    public UserIngredientDTO updateIngredient(Integer userId, Integer userIngredientId, UserIngredientDTO userIngredient) {
+        
+        String url = ingredientServiceUrl + "/api/users/" + userId + "/ingredients/" + userIngredientId;
+        
+        // Send only quantity in request body (matches controller expectation)
+        Map<String, Object> request = new HashMap<>();
+        request.put("quantity", userIngredient.getQuantity());
+        
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request);
+        ResponseEntity<UserIngredientDTO> response = restTemplate.exchange(
+            url,
+            HttpMethod.PATCH,
+            entity,
+            UserIngredientDTO.class
+        );
+        return response.getBody();
     }
     
     public void removeIngredient(Integer userId, Integer userIngredientId) {
+        
         String url = ingredientServiceUrl + "/api/users/" + userId + "/ingredients/" + userIngredientId;
         restTemplate.delete(url);
     }
