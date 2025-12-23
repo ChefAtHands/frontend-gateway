@@ -16,14 +16,14 @@ public class FavouritesController {
     
     @GetMapping
     public ResponseEntity<String> getFavourites(@PathVariable String userId) {
-        String response = favouritesServiceClient.getFavourites(userId);
-        return ResponseEntity.ok(response);
+        String favourites = favouritesServiceClient.getFavourites(userId);
+        return ResponseEntity.ok(favourites);
     }
     
     @PostMapping
     public ResponseEntity<String> addFavourite(@PathVariable String userId, @RequestBody String body) {
-        String response = favouritesServiceClient.addFavourite(userId, body);
-        return ResponseEntity.ok(response);
+        String result = favouritesServiceClient.addFavourite(userId, body);
+        return ResponseEntity.ok(result);
     }
     
     @DeleteMapping("/{recipeId}")
@@ -34,7 +34,7 @@ public class FavouritesController {
     
     @GetMapping("/{recipeId}/exists")
     public ResponseEntity<String> isFavourite(@PathVariable String userId, @PathVariable String recipeId) {
-        String response = favouritesServiceClient.isFavourite(userId, recipeId);
-        return ResponseEntity.ok(response);
+        String exists = favouritesServiceClient.isFavourite(userId, recipeId);
+        return ResponseEntity.ok(exists);
     }
 }

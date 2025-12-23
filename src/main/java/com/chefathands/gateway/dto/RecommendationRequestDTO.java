@@ -3,12 +3,16 @@ package com.chefathands.gateway.dto;
 import java.util.List;
 
 public class RecommendationRequestDTO {
+    private Integer userId;  // ADD THIS
     private List<IngredientDTO> ingredients;
     private String category;
     private Integer minProtein;
     private Integer maxCalories;
     
     // Getters and setters
+    public Integer getUserId() { return userId; }
+    public void setUserId(Integer userId) { this.userId = userId; }
+    
     public List<IngredientDTO> getIngredients() { return ingredients; }
     public void setIngredients(List<IngredientDTO> ingredients) { this.ingredients = ingredients; }
     

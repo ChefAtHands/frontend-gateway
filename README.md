@@ -67,10 +67,76 @@ GET /api/recommendations?userId={userId}&category={category}&minProtein={minProt
 POST /api/recommendations
 Body: {
   "userId": 1,
-  "ingredientIds": [1, 2, 3],
+  "ingredients": [{"name":"chicken"},{"name":"rice"}],
   "category": "Breakfast",
   "minProtein": 20
 }
+```
+
+---
+
+## Favourites Endpoints
+
+```bash
+# Get user's favourites
+GET /api/users/{userId}/favourites
+
+# Add recipe to favourites
+POST /api/users/{userId}/favourites
+Body: {"recipeId":"665261","notes":"Delicious!"}
+
+# Check if recipe is favourite
+GET /api/users/{userId}/favourites/{recipeId}/exists
+
+# Remove from favourites
+DELETE /api/users/{userId}/favourites/{recipeId}
+```
+
+---
+
+## History Endpoints
+
+```bash
+# Get user's history
+GET /api/users/{userId}/history
+
+# Add recipe to history
+POST /api/users/{userId}/history
+Body: {"recipeId":"665261","viewedAt":"2025-12-23T12:00:00"}
+
+# Check if recipe in history
+GET /api/users/{userId}/history/{recipeId}/exists
+
+# Remove from history
+DELETE /api/users/{userId}/history/{recipeId}
+```
+
+---
+
+## Notification Endpoints
+
+```bash
+# Get user's notifications
+GET /api/users/{userId}/notifications
+
+# Get unread notifications only
+GET /api/users/{userId}/notifications?unreadOnly=true
+
+# Get unread count
+GET /api/users/{userId}/notifications/unread-count
+
+# Create notification
+POST /api/notifications
+Body: {"userId":"1","message":"New recipe!","type":"recommendation"}
+
+# Mark notification as read
+POST /api/users/{userId}/notifications/{notificationId}/read
+
+# Mark all as read
+POST /api/users/{userId}/notifications/read-all
+
+# Delete notification
+DELETE /api/users/{userId}/notifications/{notificationId}
 ```
 
 ---
@@ -213,10 +279,79 @@ curl -X POST http://localhost:8080/api/recommendations \
   -H "Content-Type: application/json" \
   -d '{
     "userId": 1,
-    "ingredientIds": [1, 2, 3],
+    "ingredients": [{"name":"chicken"},{"name":"rice"}],
     "category": "Breakfast",
     "minProtein": 20
   }'
+```
+
+---
+
+### Favourites
+
+```bash
+# Get user's favourites
+curl http://localhost:8080/api/users/1/favourites
+
+# Add to favourites
+curl -X POST http://localhost:8080/api/users/1/favourites \
+  -H "Content-Type: application/json" \
+  -d '{"recipeId":"665261","notes":"Loved it!"}'
+
+# Check if favourite
+curl http://localhost:8080/api/users/1/favourites/665261/exists
+
+# Remove from favourites
+curl -X DELETE http://localhost:8080/api/users/1/favourites/665261
+```
+
+---
+
+### History
+
+```bash
+# Get user's history
+curl http://localhost:8080/api/users/1/history
+
+# Add to history
+curl -X POST http://localhost:8080/api/users/1/history \
+  -H "Content-Type: application/json" \
+  -d '{"recipeId":"665261","viewedAt":"2025-12-23T12:00:00"}'
+
+# Check if in history
+curl http://localhost:8080/api/users/1/history/665261/exists
+
+# Remove from history
+curl -X DELETE http://localhost:8080/api/users/1/history/665261
+```
+
+---
+
+### Notifications
+
+```bash
+# Get all notifications
+curl http://localhost:8080/api/users/1/notifications
+
+# Get unread only
+curl "http://localhost:8080/api/users/1/notifications?unreadOnly=true"
+
+# Get unread count
+curl http://localhost:8080/api/users/1/notifications/unread-count
+
+# Create notification
+curl -X POST http://localhost:8080/api/notifications \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"1","message":"New recipes available!","type":"recommendation"}'
+
+# Mark as read
+curl -X POST http://localhost:8080/api/users/1/notifications/123/read
+
+# Mark all as read
+curl -X POST http://localhost:8080/api/users/1/notifications/read-all
+
+# Delete notification
+curl -X DELETE http://localhost:8080/api/users/1/notifications/123
 ```
 
 ---
@@ -280,10 +415,14 @@ curl http://localhost:8080/api/health
 
 The gateway proxies requests to the following services:
 
-- **User Service** (Port 8084): Authentication and user management
+- **User Service** (Port 8083): Authentication and user management
 - **Ingredient Service** (Port 8081): Ingredient catalog and user ingredient management
 - **Recommendation Service** (Port 8082): Recipe recommendations
-- **Logging Service** (Port 8083): Application logging
+- **Recipe Search Service** (Port 8085): Recipe search with Spoonacular
+- **Favourites Service** (Port 8086): User's favorite recipes
+- **History Service** (Port 8088): Recipe viewing history
+- **Notification Service** (Port 8087): User notifications
+- **Logging Service** (Port 8084): Application logging
 
 ---
 
@@ -303,22 +442,38 @@ Gateway will start on **http://localhost:8080**
 
 ```bash
 # Terminal 1: User Service
-cd utility-services/user-service
+cd core-services/user-service
 mvn spring-boot:run
 
 # Terminal 2: Ingredient Service
-cd utility-services/ingredient-service
+cd core-services/ingredient-service
 mvn spring-boot:run
 
 # Terminal 3: Recommendation Service
-cd utility-services/recommendation-service
+cd processing-services/recommendation-service
 mvn spring-boot:run
 
-# Terminal 4: Logging Service
+# Terminal 4: Recipe Search Service
+cd external-api-services/recipe-search-service
+mvn spring-boot:run
+
+# Terminal 5: Favourites Service
+cd utility-services/favourites-service
+mvn spring-boot:run
+
+# Terminal 6: History Service
+cd utility-services/history-service
+mvn spring-boot:run
+
+# Terminal 7: Notification Service
+cd utility-services/notification-service
+mvn spring-boot:run
+
+# Terminal 8: Logging Service
 cd utility-services/logging-service
 mvn spring-boot:run
 
-# Terminal 5: Frontend Gateway
+# Terminal 9: Frontend Gateway
 cd frontend-gateway
 mvn spring-boot:run
 ```
@@ -332,10 +487,13 @@ Edit `src/main/resources/application.properties`:
 ```properties
 server.port=8080
 
-services.user.url=http://localhost:8084
+services.user.url=http://localhost:8083
 services.ingredient.url=http://localhost:8081
 services.recommendation.url=http://localhost:8082
-services.logging.url=http://localhost:8083
+services.recipe-search.url=http://localhost:8085
+favourites.service.url=http://localhost:8086
+notification.service.url=http://localhost:8087
+history.service.url=http://localhost:8088
 ```
 
 ---
@@ -347,10 +505,14 @@ Frontend
    ↓
 Frontend Gateway (8080)
    ↓
-   ├── User Service (8084)
+   ├── User Service (8083)
    ├── Ingredient Service (8081)
    ├── Recommendation Service (8082)
-   └── Logging Service (8083)
+   ├── Recipe Search Service (8085)
+   ├── Favourites Service (8086)
+   ├── History Service (8088)
+   ├── Notification Service (8087)
+   └── Logging Service (8084)
 ```
 
 ---
@@ -361,3 +523,4 @@ Frontend Gateway (8080)
 - Backend services should not be accessed directly from frontend
 - Logging service failures will not break main functionality
 - PATCH requests require Apache HttpClient dependency (already configured)
+- Favourites, History, and Notifications are currently mock services
